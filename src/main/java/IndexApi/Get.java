@@ -1,9 +1,13 @@
 package IndexApi;
 
 import org.elasticsearch.action.get.GetResponse;
+import org.elasticsearch.action.get.MultiGetItemResponse;
+import org.elasticsearch.action.get.MultiGetRequestBuilder;
+import org.elasticsearch.action.get.MultiGetResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.document.DocumentField;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.List;
 import java.util.Map;
@@ -14,9 +18,14 @@ import java.util.Map;
  * Description:
  */
 public class Get {
-    public static void main(String[] args) throws UnknownHostException {
+    public static void main(String[] args) throws Exception {
+//        get();
+        multiGetDoc();
+    }
+
+    private static void get() throws UnknownHostException {
         TransportClient client = TransportClientFactory.getClient();
-        GetResponse response = client.prepareGet("clothes", "young", "1").get();
+        GetResponse response = client.prepareGet("clothes", "young", "2").get();
         String id = response.getId();
         String index = response.getIndex();
         Map<String, DocumentField> fields = response.getFields();
@@ -35,8 +44,22 @@ public class Get {
             System.out.println(s + ":" + o);
         }
         System.out.println("ID:" + id + ",Index:" + index);
-
-
-
     }
+    public static TransportClient multiGetDoc() throws IOException {
+        TransportClient client = TransportClientFactory.getClient();
+        MultiGetRequestBuilder multiGetRequestBuilder = client.prepareMultiGet();
+        MultiGetResponse multiGetItemResponses = multiGetRequestBuilder.add("clothes", "young", "1", "2")
+                .add("car", "model", "1", "2", "3")
+                .get();
+        for (MultiGetItemResponse response : multiGetItemResponses) {
+            GetResponse response1 = response.getResponse();
+            if(response1.isExists()){
+                String sourceAsString = response1.getSourceAsString();
+                System.out.println(sourceAsString);
+            }
+        }
+
+        return client;
+    }
+
 }
