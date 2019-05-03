@@ -4,11 +4,16 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.get.MultiGetItemResponse;
 import org.elasticsearch.action.get.MultiGetRequestBuilder;
 import org.elasticsearch.action.get.MultiGetResponse;
+import org.elasticsearch.action.search.MultiSearchResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.document.DocumentField;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.IOException;
@@ -25,7 +30,9 @@ public class Get {
     public static void main(String[] args) throws Exception {
 //        get();
 //        multiGetDoc();
-scrollSearch();
+//scrollSearch();
+//        search();
+        multiSearch();
     }
 
     private static void get() throws UnknownHostException {
@@ -89,5 +96,60 @@ scrollSearch();
 
     }
     }
+    /**
+     * 简单查询【通配符查询，筛选价格范围，设定返回数量，排序】
+     * @throws UnknownHostException
+     */
+    public static void search() throws UnknownHostException {
+        TransportClient client = TransportClientFactory.getClient();
+        SearchResponse searchResponse = client.prepareSearch("book")// index,可以多个
+                .setSearchType(SearchType.DFS_QUERY_THEN_FETCH)
+                .setQuery(QueryBuilders.wildcardQuery("name", "*book_1?")) //模糊查询，?匹配单个字符，*匹配多个字符
+                .setPostFilter(QueryBuilders.rangeQuery("price").from(500).to(850))
+                .setFrom(0).setSize(100)
+                .setExplain(true)////explain为true表示根据数据相关度排序，和关键字匹配最高的排在前面
+                .addSort("postDate", SortOrder.DESC).get();
+        searchResponse.getHits().forEach(e->{
+            System.out.println(e.getSourceAsString());
+        });
 
+
+    }
+
+    /**
+     * 多个查询
+     */
+    public static TransportClient multiSearch() throws UnknownHostException {
+        TransportClient client = TransportClientFactory.getClient();
+        // 第一个查询
+        SearchRequestBuilder srb1 = client
+                .prepareSearch("book")
+                .setQuery(QueryBuilders.queryStringQuery("book_9*").field("name"))
+                .setFrom(0)    // 开始位置
+                .setSize(10);   // 设置返回的最大条数
+        // 第二个查询
+        SearchRequestBuilder srb2 = client
+                .prepareSearch("car")
+                .setQuery(QueryBuilders.queryStringQuery("*r*"))
+                .setSize(10);
+        // 组合
+        MultiSearchResponse sr = client.prepareMultiSearch()
+                .add(srb1)
+                .add(srb2)
+                .get();
+
+        // You will get all individual responses from MultiSearchResponse#getResponses()
+        long nbHits = 0;
+        for (MultiSearchResponse.Item item : sr.getResponses()) {
+            SearchResponse response = item.getResponse();
+            response.getHits().forEach(e ->{
+                System.out.println(e.getSourceAsString());
+            });
+            long hits = response.getHits().getTotalHits();
+            System.out.println("Hits:" + hits);
+            nbHits += hits;
+        }
+        System.out.println("Total:" + nbHits);
+        return client;
+    }
 }

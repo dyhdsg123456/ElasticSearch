@@ -7,11 +7,18 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.index.IndexRequestBuilder;
 import org.elasticsearch.action.index.IndexResponse;
+import org.elasticsearch.action.search.MultiSearchResponse;
+import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.action.search.SearchType;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.rest.RestStatus;
+import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -29,7 +36,7 @@ public class ADD {
     public static void main(String[] args) throws IOException {
 //        addDoc1();
 //        bulkDoc();
-        scrollSearchPreData();
+//        scrollSearchPreData();
     }
 
     /**
@@ -138,4 +145,5 @@ public class ADD {
         build.close();
         return client;
     }
+
 }
